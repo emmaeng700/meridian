@@ -1,0 +1,63 @@
+version: '3.9'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: meridian
+      POSTGRES_USER: meridian
+      POSTGRES_PASSWORD: meridian
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U meridian"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql+asyncpg://meridian:meridian@postgres:5432/meridian
+      SYNC_DATABASE_URL: postgresql://meridian:meridian@postgres:5432/meridian
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./sample_data:/sample_data
+    restart: unless-stopped
+
+  dashboard:
+    build: ./dashboard
+    ports:
+      - "8501:8501"
+    environment:
+      API_URL: http://backend:8000/api/v1
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  # Optional: seed demo data after stack is up
+  seeder:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgresql+asyncpg://meridian:meridian@postgres:5432/meridian
+      SYNC_DATABASE_URL: postgresql://meridian:meridian@postgres:5432/meridian
+    depends_on:
+      postgres:
+        condition: service_healthy
+      backend:
+        condition: service_started
+    volumes:
+      - ./sample_data:/sample_data
+    command: >
+      sh -c "sleep 10 && python seed_demo.py --api-url http://backend:8000/api/v1"
+    profiles:
+      - seed
+
+volumes:
+  postgres_data:
