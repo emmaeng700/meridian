@@ -37,6 +37,7 @@ from app.api.sources import router as sources_router
 from app.api.profiles import router as profiles_router
 from app.api.anomalies import router as anomalies_router
 from app.api.reports import router as reports_router
+from app.api.ingest import router as ingest_router
 
 
 @asynccontextmanager
@@ -74,6 +75,7 @@ app.include_router(sources_router, prefix=prefix)
 app.include_router(profiles_router, prefix=prefix)
 app.include_router(anomalies_router, prefix=prefix)
 app.include_router(reports_router, prefix=prefix)
+app.include_router(ingest_router, prefix=prefix)
 
 
 @app.get("/health", tags=["health"])
